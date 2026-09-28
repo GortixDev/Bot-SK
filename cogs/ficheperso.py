@@ -1,0 +1,80 @@
+import re
+import discord
+from discord import app_commands
+from discord.ext import commands
+from config import (
+    ID_SALON_COMMANDE_FICHE, ID_CATEGORIE_FICHE, ROLES_FICHE_PERSO,
+    ROLES_STAFF, salons_fiche_perso, sauvegarder_salons_fiche, verifier_roles
+)
+
+ROLES_AUTOMATIQUES_FICHE = [1539031656139071530, 1539031656076410976, 1539395768476246057]
+
+def normaliser_nom_salon_fiche(texte: str) -> str:
+    table_separateurs = str.maketrans({"‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "―": "-", "－": "-", "·": "-", "•": "-", "|": "-", "/": "-", "\\": "-"})
+    texte = texte.strip().translate(table_separateurs).lower().replace(" ", "-")
+    texte = re.sub(r"[\r\n\t]+", "-", texte)
+    return re.sub(r"-{2,}", "-", texte).strip("-")[:100].strip("-")
+
+class FichePersoCog(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @app_commands.command(name="ficheperso", description="Crée un salon de fiche perso avec les rôles automatiques")
+    @verifier_roles(ROLES_STAFF)
+    async def ficheperso(self, interaction: discord.Interaction, membre: discord.Member, rename: str | None = None):
+        if interaction.channel_id != ID_SALON_COMMANDE_FICHE:
+            await interaction.response.send_message(f"❌ À utiliser dans <#{ID_SALON_COMMANDE_FICHE}>.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+        categorie_cible = guild.get_channel(ID_CATEGORIE_FICHE) if guild else None
+
+        if not isinstance(categorie_cible, discord.CategoryChannel):
+            await interaction.followup.send("❌ Catégorie invalide.", ephemeral=True)
+            return
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            membre: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+        }
+        for role_id in ROLES_FICHE_PERSO:
+            role = guild.get_role(role_id)
+            if role:
+                overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_messages=True, manage_channels=True)
+
+        nom_salon = normaliser_nom_salon_fiche(rename) if rename else f"🔫・{normaliser_nom_salon_fiche(membre.display_name)}"
+        nouveau_salon = await categorie_cible.create_text_channel(name=nom_salon, overwrites=overwrites)
+
+        salons_fiche_perso.add(nouveau_salon.id)
+        sauvegarder_salons_fiche()
+
+        for r_id in ROLES_AUTOMATIQUES_FICHE:
+            r = guild.get_role(r_id)
+            if r and r not in membre.roles:
+                try:
+                    await membre.add_roles(r)
+                except Exception:
+                    pass
+
+        await nouveau_salon.send(f"**__📄 FICHE PERSONNELLE DE {membre.mention}__**\n\n• **Nom / Prénom :** {membre.display_name}")
+        await interaction.followup.send(f"✅ Fiche créée : {nouveau_salon.mention}", ephemeral=True)
+
+    @app_commands.command(name="renamesalon", description="Renomme le salon de fiche perso actuel")
+    @verifier_roles(ROLES_STAFF)
+    async def renamesalon(self, interaction: discord.Interaction, nouveau_nom: str):
+        if interaction.channel_id not in salons_fiche_perso:
+            await interaction.response.send_message("❌ Réservé aux salons fiches persos.", ephemeral=True)
+            return
+
+        nom_clean = re.sub(r"[^a-z0-9\-_]", "", nouveau_nom.lower().replace(" ", "-"))
+        if not nom_clean:
+            await interaction.response.send_message("❌ Nom invalide.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        await interaction.channel.edit(name=nom_clean)
+        await interaction.followup.send(f"✅ Salon renommé en `{nom_clean}`", ephemeral=True)
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(FichePersoCog(bot))
