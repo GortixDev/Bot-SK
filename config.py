@@ -78,6 +78,12 @@ def sauvegarder_salons_fiche():
     except Exception as e:
         print(f"Erreur sauvegarde des salons de fiches persos : {e}")
 
+def normaliser_nom_salon_fiche(nom: str) -> str:
+    """Nettoie le nom d'un salon pour correspondre au format attendu."""
+    nom_nettoye = nom.lower().strip()
+    nom_nettoye = re.sub(r"[^\w\s-]", "", nom_nettoye)
+    return re.sub(r"[-\s]+", "-", nom_nettoye)
+
 # --- Checks & Helpers ---
 def utilisateur_a_role(membre: discord.Member, roles_autorises) -> bool:
     if membre.guild_permissions.administrator:
