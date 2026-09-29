@@ -1,118 +1,85 @@
-import datetime
-import json
 import os
-import re
-from pathlib import Path
-from zoneinfo import ZoneInfo
+import sys
+import threading
 import discord
-from discord import app_commands
+from discord.ext import commands
+from flask import Flask
+from config import envoyer_log
 
-HEURE_FRANCE = ZoneInfo("Europe/Paris")
+app = Flask("")
 
-# --- IDs Salons & Catégories ---
-ID_SALON_LOGS = 1541572348396703805
-ID_CATEGORIE_FICHE = 1539031662078464118
-ID_SALON_COMMANDE_FICHE = 1542856179435307076
-ID_SALON_ALERTE_ACTIVITES = 1542837467709833286
-ID_ROLE_PING_ALERTE_ACTIVITE = 1539031656076410976
+@app.route("/")
+def home():
+    return "Bot SK OK", 200
 
-# --- Fichiers & Données ---
-DOSSIER_DATA = Path("data")
-DOSSIER_DATA.mkdir(exist_ok=True)
-FICHIER_SALONS_FICHE = DOSSIER_DATA / "salons_fiche_perso.json"
-FICHIER_COMPTEUR_ACTIVITES = DOSSIER_DATA / "compteur_activites.json"
-FICHIER_COFFRE = DOSSIER_DATA / "coffre_armes.json"
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
-SALONS_FICHE_PERSO_INITIAUX = [
-    1540828787451633674, 1540829679425028166, 1540829737113624576,
-    1540829770609197107, 1540830458483314748, 1540830281848848505,
-    1540830423746085037, 1541556456942473316, 1541907647677337640,
-]
+def keep_alive():
+    t = threading.Thread(target=run_flask, daemon=True)
+    t.start()
 
-SALONS_FIXES_CATEGORIE = {
-    1541578207340535858, 1540833171589963848, 1542856179435307076,
-    1542837467709833286, 1542837521807966279,
-}
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+intents.presences = True
 
-# --- Rôles ---
-ROLES_ACTIVITE = {1539031656076410976}
-ROLES_STAFF = {
-    1539031656076410974, 1539031656076410973, 1539031656139071533,
-    1539031656076410978, 1539031656076410977, 1539031656176951319,
-}
-ROLES_SUPP = {1539031656176951321, 1539031656176951320, 1539031656176951319}
-ROLES_PRESENCE = {1539031656176951321, 1539031656176951320, 1539031656176951317, 1539031656176951319}
-ROLES_MODIFIER_PRESENCE = {1539031656176951321, 1539031656176951320, 1539031656176951319}
+class MonBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=intents)
 
-ROLES_FICHE_PERSO = [
-    1540842755939635261, 1539031656076410974, 1539031656076410973,
-    1539031656139071533, 1539031656076410979, 1539031656076410978,
-    1539031656076410977, 1539045111105720352,
-]
-
-LISTE_ROLES_GRADES = [
-    1539031656139071530, 1539031656139071531, 1539031656139071532,
-    1539031656139071533, 1539031656139071534, 1539031656139071535,
-    1539031656139071537, 1539031656139071536, 1539031656139071538,
-    1539031656176951317, 1539031656176951318, 1553411598494867486,
-    1539031656176951320, 1539031656176951321,
-]
-
-# --- Gestion des fiches persos ---
-def charger_salons_fiche() -> set[int]:
-    salons = set(SALONS_FICHE_PERSO_INITIAUX)
-    if FICHIER_SALONS_FICHE.exists():
+    async def setup_hook(self):
+        if os.path.exists("./cogs"):
+            for filename in os.listdir("./cogs"):
+                if filename.endswith(".py"):
+                    try:
+                        await self.load_extension(f"cogs.{filename[:-3]}")
+                        print(f"✅ Cog chargé : {filename[:-3]}")
+                    except Exception as e:
+                        print(f"❌ Erreur lors du chargement de cogs/{filename}: {e}")
+        
         try:
-            with open(FICHIER_SALONS_FICHE, "r", encoding="utf-8") as f:
-                salons.update(json.load(f))
+            synced = await self.tree.sync()
+            print(f"✅ Synchronisé {len(synced)} commande(s) slash.")
         except Exception as e:
-            print(f"Erreur lecture des salons de fiches persos : {e}")
-    return salons
+            print(f"❌ Erreur lors de la synchronisation des commandes : {e}")
 
-salons_fiche_perso: set[int] = charger_salons_fiche()
+bot = MonBot()
 
-def sauvegarder_salons_fiche():
-    try:
-        with open(FICHIER_SALONS_FICHE, "w", encoding="utf-8") as f:
-            json.dump(sorted(salons_fiche_perso), f)
-    except Exception as e:
-        print(f"Erreur sauvegarde des salons de fiches persos : {e}")
-
-def normaliser_nom_salon_fiche(nom: str) -> str:
-    """Nettoie le nom d'un salon pour correspondre au format attendu."""
-    nom_nettoye = nom.lower().strip()
-    nom_nettoye = re.sub(r"[^\w\s-]", "", nom_nettoye)
-    return re.sub(r"[-\s]+", "-", nom_nettoye)
-
-# --- Checks & Helpers ---
-def utilisateur_a_role(membre: discord.Member, roles_autorises) -> bool:
-    if membre.guild_permissions.administrator:
-        return True
-    return any(role.id in roles_autorises for role in membre.roles)
-
-def verifier_roles(roles_autorises):
-    async def predicate(interaction: discord.Interaction) -> bool:
-        if not isinstance(interaction.user, discord.Member):
-            return False
-        return utilisateur_a_role(interaction.user, roles_autorises)
-    return app_commands.check(predicate)
-
-async def envoyer_log(bot, title, description, color):
-    channel_logs = bot.get_channel(ID_SALON_LOGS)
-    if not channel_logs:
-        try:
-            channel_logs = await bot.fetch_channel(ID_SALON_LOGS)
-        except Exception as e:
-            print(f"Salon de logs introuvable : {e}")
-            return
-
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        color=color,
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+@bot.event
+async def on_ready():
+    print(f"🤖 Connecté en tant que : {bot.user}")
+    await envoyer_log(
+        bot,
+        "🔄 Redémarrage / Connexion du Bot",
+        f"Le bot **{bot.user}** vient de démarrer et toutes les commandes sont opérationnelles.",
+        discord.Color.blue(),
     )
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    if isinstance(error, discord.app_commands.CheckFailure):
+        msg = "❌ Tu n'as pas le rôle requis pour utiliser cette commande."
+    else:
+        msg = f"❌ Une erreur est survenue lors de l'exécution : {error}"
+        print(f"Erreur AppCommand: {error}")
+
     try:
-        await channel_logs.send(embed=embed)
+        if interaction.response.is_done():
+            await interaction.followup.send(msg, ephemeral=True)
+        else:
+            await interaction.response.send_message(msg, ephemeral=True)
     except Exception as e:
-        print(f"Erreur d'envoi du log : {e}")
+        print(f"Impossible d'envoyer le message d'erreur : {e}")
+
+if __name__ == "__main__":
+    keep_alive()
+    TOKEN = os.environ.get("DISCORD_TOKEN")
+    if not TOKEN:
+        print("❌ TOKEN MANQUANT")
+        sys.exit(1)
+    try:
+        bot.run(TOKEN)
+    except Exception as e:
+        print(f"Erreur lors du lancement : {e}")
