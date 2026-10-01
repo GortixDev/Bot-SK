@@ -9,15 +9,17 @@ from discord import app_commands
 
 HEURE_FRANCE = ZoneInfo("Europe/Paris")
 
+# --- Webhook & Logs ---
+# À remplacer par l'URL de ton Webhook Discord (Créé dans Salon Logs > Paramètres > Intégrations > Webhooks)
+WEBHOOK_LOGS_URL = os.environ.get("WEBHOOK_LOGS_URL", "https://discord.com/api/webhooks/TES_IDENTIFIANTS_ICI")
+
 # --- IDs Salons & Catégories ---
 ID_SALON_LOGS = 1541572348396703805
 ID_ROLE_BOT_MENTION = 1540841034672513206
-ID_CATEGORIE_FICHE = 1539031662078464118
+ID_CATEGORIE_FICHE = 1539031656076410976
 ID_SALON_COMMANDE_FICHE = 1542856179435307076
 ID_SALON_ALERTE_ACTIVITES = 1542837467709833286
 ID_ROLE_PING_ALERTE_ACTIVITE = 1539031656076410976
-
-# ID exact du rôle Secretary (mentionné à la fin de l'absence)
 ID_ROLE_SECRETARY = 1539031656176951317
 
 # --- Fichiers & Données ---
@@ -54,25 +56,14 @@ ROLES_FICHE_PERSO = [
     1539031656076410977, 1539045111105720352,
 ]
 
-# Ordre exact des grades pour le menu déroulant
 LISTE_ROLES_GRADES = [
-    1539031656176951321,  # ⚒️ • Président
-    1539031656176951320,  # 🚬 • V-Président
-    1539031656176951319,  # 🔫 • Sergeant At Arms
-    1539031656176951318,  # 💲 • Treasurer
-    1539031656176951317,  # 🗓️ • Secretary
-    1553411598494867486,  # 🏍️️ • Road Captain
-    1539031656139071538,  # 💪 • Enforcer
-    1539031656139071537,  # ☠️ • Soul Reaper
-    1539031656139071536,  # 🛵 • Tail-Gunner
-    1539031656139071535,  # 😡 • Ass-Kicker
-    1539031656139071534,  # 🌙 • Soul Night
-    1539031656139071533,  # 🛠️ • Member
-    1539031656139071532,  # 🐦‍⬛ • Nomad
-    1539031656139071531,  # 🔧 • Prospect
+    1539031656176951321, 1539031656176951320, 1539031656176951319,
+    1539031656176951318, 1539031656176951317, 1553411598494867486,
+    1539031656139071538, 1539031656139071537, 1539031656139071536,
+    1539031656139071535, 1539031656139071534, 1539031656139071533,
+    1539031656139071532, 1539031656139071531,
 ]
 
-# --- Gestion des fiches persos ---
 def charger_salons_fiche() -> set[int]:
     salons = set(SALONS_FICHE_PERSO_INITIAUX)
     if FICHIER_SALONS_FICHE.exists():
@@ -80,7 +71,7 @@ def charger_salons_fiche() -> set[int]:
             with open(FICHIER_SALONS_FICHE, "r", encoding="utf-8") as f:
                 salons.update(json.load(f))
         except Exception as e:
-            print(f"Erreur lecture des salons de fiches persos : {e}")
+            print(f"Erreur lecture salons fiches : {e}")
     return salons
 
 salons_fiche_perso: set[int] = charger_salons_fiche()
@@ -90,15 +81,13 @@ def sauvegarder_salons_fiche():
         with open(FICHIER_SALONS_FICHE, "w", encoding="utf-8") as f:
             json.dump(sorted(salons_fiche_perso), f)
     except Exception as e:
-        print(f"Erreur sauvegarde des salons de fiches persos : {e}")
+        print(f"Erreur sauvegarde salons fiches : {e}")
 
 def normaliser_nom_salon_fiche(nom: str) -> str:
-    """Nettoie le nom d'un salon pour correspondre au format attendu."""
     nom_nettoye = nom.lower().strip()
     nom_nettoye = re.sub(r"[^\w\s-]", "", nom_nettoye)
     return re.sub(r"[-\s]+", "-", nom_nettoye)
 
-# --- Checks & Helpers ---
 def utilisateur_a_role(membre: discord.Member, roles_autorises) -> bool:
     if membre.guild_permissions.administrator:
         return True
