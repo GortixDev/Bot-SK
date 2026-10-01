@@ -1,9 +1,9 @@
 import os
 import sys
-import threading
+import asyncio
+from flask import Flask
 import discord
 from discord.ext import commands
-from flask import Flask
 from config import envoyer_log
 
 app = Flask("")
@@ -12,14 +12,14 @@ app = Flask("")
 def home():
     return "Bot SK OK", 200
 
-def run_flask():
-    # Récupération du port dynamique attribué par Render
+async def run_flask():
+    # Sur Render, il faut écouter sur 0.0.0.0 et sur le port fourni par $PORT
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
-def keep_alive():
-    t = threading.Thread(target=run_flask, daemon=True)
-    t.start()
+    config = WerkzeugConfig() if False else None
+    # Lancement du serveur Web léger sans bloquer la boucle Discord
+    from werkzeug.serving import run_simple
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, lambda: run_simple("0.0.0.0", port, app, use_reloader=False, threaded=True))
 
 intents = discord.Intents.default()
 intents.members = True
@@ -31,6 +31,10 @@ class MonBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
+        # Lancement du serveur web Flask en tâche d'arrière-plan
+        self.loop.create_task(run_flask())
+
+        # Chargement des Cogs
         if os.path.exists("./cogs"):
             for filename in os.listdir("./cogs"):
                 if filename.endswith(".py"):
@@ -40,6 +44,7 @@ class MonBot(commands.Bot):
                     except Exception as e:
                         print(f"❌ Erreur lors du chargement de cogs/{filename}: {e}")
         
+        # Synchronisation des commandes slash
         try:
             synced = await self.tree.sync()
             print(f"✅ Synchronisé {len(synced)} commande(s) slash.")
@@ -75,7 +80,6 @@ async def on_app_command_error(interaction: discord.Interaction, error: discord.
         print(f"Impossible d'envoyer le message d'erreur : {e}")
 
 if __name__ == "__main__":
-    keep_alive()
     TOKEN = os.environ.get("DISCORD_TOKEN")
     if not TOKEN:
         print("❌ TOKEN MANQUANT")
