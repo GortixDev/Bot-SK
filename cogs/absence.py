@@ -3,7 +3,7 @@ import datetime
 import discord
 from discord import app_commands
 from discord.ext import commands
-from config import HEURE_FRANCE, LISTE_ROLES_GRADES
+from config import HEURE_FRANCE, LISTE_ROLES_GRADES, ID_ROLE_SERGENT_AT_ARMS
 
 class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
     def __init__(self, role_mention: str, auteur: discord.Member):
@@ -17,8 +17,16 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
         default=datetime.datetime.now(HEURE_FRANCE).strftime("%d/%m/%Y"),
         required=True,
     )
-    date_retour = discord.ui.TextInput(label="Date De Retour", placeholder="Ex : 30/08/2026", required=True)
-    raison = discord.ui.TextInput(label="Raison De L'absence", style=discord.TextStyle.paragraph, required=True)
+    date_retour = discord.ui.TextInput(
+        label="Date De Retour", 
+        placeholder="Ex : 30/08/2026", 
+        required=True
+    )
+    raison = discord.ui.TextInput(
+        label="Raison De L'absence", 
+        style=discord.TextStyle.paragraph, 
+        required=True
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
@@ -28,7 +36,7 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
             f"**Date De Départ :** {self.date_depart.value}\n"
             f"**Date De Retour :** {self.date_retour.value}\n"
             f"**Raison De L'absence :** {self.raison.value}\n\n"
-            f"**Cordialement,**\n<@&1539031656176951317>"
+            f"**Cordialement,**\n<@&{ID_ROLE_SERGENT_AT_ARMS}>"
         )
         await interaction.channel.send(message_absence)
         await interaction.followup.send("✅ Déclaration d'absence envoyée !", ephemeral=True)
@@ -47,7 +55,12 @@ class SelectGradeView(discord.ui.View):
         if not options:
             options.append(discord.SelectOption(label="Aucun rôle trouvé", value="0"))
 
-        self.select = discord.ui.Select(placeholder="Choisis ton grade...", min_values=1, max_values=1, options=options[:25])
+        self.select = discord.ui.Select(
+            placeholder="Choisis ton grade...", 
+            min_values=1, 
+            max_values=1, 
+            options=options[:25]
+        )
         self.select.callback = self.select_callback
         self.add_item(self.select)
 
