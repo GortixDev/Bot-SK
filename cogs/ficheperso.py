@@ -1,10 +1,12 @@
+import datetime
 import re
 import discord
 from discord import app_commands
 from discord.ext import commands
 from config import (
     ID_SALON_COMMANDE_FICHE, ID_CATEGORIE_FICHE, ROLES_FICHE_PERSO,
-    ROLES_STAFF, salons_fiche_perso, sauvegarder_salons_fiche, verifier_roles
+    ROLES_STAFF, HEURE_FRANCE, LISTE_ROLES_GRADES,
+    salons_fiche_perso, sauvegarder_salons_fiche, verifier_roles
 )
 
 ROLES_AUTOMATIQUES_FICHE = [1539031656139071530, 1539031656076410976, 1539395768476246057]
@@ -49,6 +51,7 @@ class FichePersoCog(commands.Cog):
         salons_fiche_perso.add(nouveau_salon.id)
         sauvegarder_salons_fiche()
 
+        # Attribution des rôles automatiques
         for r_id in ROLES_AUTOMATIQUES_FICHE:
             r = guild.get_role(r_id)
             if r and r not in membre.roles:
@@ -57,7 +60,35 @@ class FichePersoCog(commands.Cog):
                 except Exception:
                     pass
 
-        await nouveau_salon.send(f"**__📄 FICHE PERSONNELLE DE {membre.mention}__**\n\n• **Nom / Prénom :** {membre.display_name}")
+        # Extraction Nom / Prénom depuis le pseudo
+        parties_nom = membre.display_name.split(" ", 1)
+        prenom = parties_nom[0]
+        nom = parties_nom[1] if len(parties_nom) > 1 else "N/A"
+
+        # Détection des rôles de grades du membre
+        roles_membres = [r.mention for r in membre.roles if r.id in LISTE_ROLES_GRADES]
+        texte_roles = ", ".join(roles_membres) if roles_membres else "Aucun grade attribué"
+
+        date_recrutement = datetime.datetime.now(HEURE_FRANCE).strftime("%d/%m/%Y")
+
+        # Message d'identité + bienvenue + guide /activité
+        contenu_message = (
+            f"# 🪪 FICHE PERSONNELLE DE {membre.mention}\n\n"
+            f"👤 **Nom :** {nom}\n"
+            f"👤 **Prénom :** {prenom}\n"
+            f"🎖️ **Rôles / Grade :** {texte_roles}\n"
+            f"📅 **Date de recrutement :** {date_recrutement}\n\n"
+            f"----------------------------------------\n\n"
+            f"👋 **Bienvenue parmi nous {membre.mention} !**\n"
+            f"Ce salon est ta fiche personnelle. Tu y trouveras l'historique de tes activités et de ton suivi.\n\n"
+            f"📖 **COMMENT UTILISER LA COMMANDE `/activite` :**\n"
+            f"Chaque fois que tu effectues une activité sur le serveur, tu dois la déclarer ici même :\n"
+            f"1️⃣ Tape la commande `/activite` dans ce salon.\n"
+            f"2️⃣ Remplis les champs requis (Type d'activité, détails, preuves si nécessaire).\n"
+            f"3️⃣ Valide pour ajouter automatiquement tes points / heures à ton compteur."
+        )
+
+        await nouveau_salon.send(contenu_message)
         await interaction.followup.send(f"✅ Fiche créée : {nouveau_salon.mention}", ephemeral=True)
 
     @app_commands.command(name="renamesalon", description="Renomme le salon de fiche perso actuel")
