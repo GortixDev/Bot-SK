@@ -60,20 +60,13 @@ class FichePersoCog(commands.Cog):
                 except Exception:
                     pass
 
-        # Rafraîchissement des données du membre pour récupérer les rôles fraîchement ajoutés
-        try:
-            membre = await guild.fetch_member(membre.id)
-        except Exception:
-            pass
-
         # Extraction Nom / Prénom depuis le pseudo
         parties_nom = membre.display_name.split(" ", 1)
         prenom = parties_nom[0]
         nom = parties_nom[1] if len(parties_nom) > 1 else "N/A"
 
-        # Détection des rôles de grades du membre
-        roles_membres = [r.mention for r in membre.roles if r.id in LISTE_ROLES_GRADES]
-        texte_roles = ", ".join(roles_membres) if roles_membres else "Aucun grade attribué"
+        # Affichage direct du rôle Prospect
+        texte_roles = "<@&1539031656139071530>"
 
         date_recrutement = datetime.datetime.now(HEURE_FRANCE).strftime("%d/%m/%Y")
 
