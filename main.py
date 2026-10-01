@@ -14,7 +14,6 @@ def home():
     return "Bot SK OK", 200
 
 async def run_flask():
-    # Sur Render, il faut écouter sur 0.0.0.0 et sur le port fourni par $PORT
     port = int(os.environ.get("PORT", 10000))
     from werkzeug.serving import run_simple
     loop = asyncio.get_event_loop()
@@ -30,10 +29,8 @@ class MonBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        # Lancement du serveur web Flask en tâche d'arrière-plan
         self.loop.create_task(run_flask())
 
-        # Chargement des Cogs
         if os.path.exists("./cogs"):
             for filename in os.listdir("./cogs"):
                 if filename.endswith(".py"):
@@ -43,7 +40,6 @@ class MonBot(commands.Bot):
                     except Exception as e:
                         print(f"❌ Erreur lors du chargement de cogs/{filename}: {e}")
         
-        # Synchronisation des commandes slash
         try:
             synced = await self.tree.sync()
             print(f"✅ Synchronisé {len(synced)} commande(s) slash.")
@@ -56,38 +52,34 @@ bot = MonBot()
 async def on_ready():
     print(f"🤖 Connecté en tant que : {bot.user}")
     
-    channel_logs = bot.get_channel(ID_SALON_LOGS)
-    if channel_logs:
-        # Message 1 : Redémarrage avec la mention
-        await channel_logs.send(
-            f"🔄 **Redémarrage / Connexion du Bot**\n"
-            f"Le bot <@&{ID_ROLE_BOT_MENTION}> vient de se redémarrer merci de patienter pendant sa mise en ligne"
-        )
-        
-        # Message 2 : Confirmation de mise en ligne
-        await envoyer_log(
-            bot,
-            "🟢 Bot en ligne",
-            f"Le bot {bot.user.mention} est désormais connecté et toutes les commandes sont totalement opérationnelles.",
-            discord.Color.green(),
-        )
-
-async def annoncer_hors_ligne():
-    """Envoie une alerte dans les logs lorsque Render éteint le bot."""
+    # Envoyé uniquement QUAND LE BOT EST TOTALEMENT EN LIGNE
     await envoyer_log(
         bot,
-        "🔴 Bot Hors Ligne",
-        f"Le bot <@&{ID_ROLE_BOT_MENTION}> est actuellement hors ligne ou en cours de redémarrage.",
-        discord.Color.red(),
+        "🟢 Bot en ligne",
+        f"Le bot {bot.user.mention} est désormais connecté et totalement opérationnel.",
+        discord.Color.green(),
     )
 
+async def annoncer_redemarrage_et_fermer():
+    """Prévient dans les logs que le bot se coup pour redémarrer avant l'extinction."""
+    channel_logs = bot.get_channel(ID_SALON_LOGS)
+    if channel_logs:
+        try:
+            await channel_logs.send(
+                f"🔄 **Redémarrage / Connexion du Bot**\n"
+                f"Le bot <@&{ID_ROLE_BOT_MENTION}> vient de se redémarrer, merci de patienter pendant sa mise en ligne."
+            )
+        except Exception as e:
+            print(f"Erreur envoi alerte redémarrage : {e}")
+    
+    await bot.close()
+
 def signal_handler(sig, frame):
-    """Intercepte le signal d'arrêt envoyé par Render lors d'un déploiement ou redémarrage."""
-    print("🛑 Signal d'arrêt reçu de Render. Envoi de l'alerte hors ligne...")
+    """Intercepte le clic 'Manual Deploy' ou le redémarrage sur Render."""
+    print("🛑 Signal de redémarrage/arrêt reçu de Render. Envoi du message...")
     loop = asyncio.get_event_loop()
     if loop.is_running():
-        loop.create_task(annoncer_hors_ligne())
-        loop.create_task(bot.close())
+        loop.create_task(annoncer_redemarrage_et_fermer())
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
@@ -111,7 +103,7 @@ if __name__ == "__main__":
         print("❌ TOKEN MANQUANT")
         sys.exit(1)
 
-    # Capture des signaux d'arrêt Render
+    # Capture du signal de fermeture de Render
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
