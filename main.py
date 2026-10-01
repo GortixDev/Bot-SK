@@ -1,10 +1,11 @@
 import os
 import sys
 import asyncio
+import signal
 from flask import Flask
 import discord
 from discord.ext import commands
-from config import ID_SALON_LOGS, envoyer_log
+from config import ID_SALON_LOGS, ID_ROLE_BOT_MENTION, envoyer_log
 
 app = Flask("")
 
@@ -51,13 +52,30 @@ bot = MonBot()
 async def on_ready():
     print(f"🤖 Connecté en tant que : {bot.user}")
     
-    # Envoi uniquement du message déclarant le bot en ligne
+    # Message de confirmation de mise en ligne
     await envoyer_log(
         bot,
         "🟢 Bot en ligne",
-        f"Le bot {bot.user.mention} est désormais connecté et toutes les commandes sont totalement opérationnelles.",
+        f"Le bot {bot.user.mention} est désormais connecté et toutes les commandes sont opérationnelles.",
         discord.Color.green(),
     )
+
+async def alerte_hors_ligne():
+    """Envoie une alerte rouge si le bot subit une coupure propre."""
+    await envoyer_log(
+        bot,
+        "🔴 Bot Hors Ligne",
+        f"Le bot <@&{ID_ROLE_BOT_MENTION}> est actuellement hors ligne ou a rencontré un problème.",
+        discord.Color.red(),
+    )
+
+def gestionnaire_signal(sig, frame):
+    """S'exécute si Render prévient de la fermeture du processus."""
+    print("🛑 Signal d'arrêt reçu. Notification hors ligne...")
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        loop.create_task(alerte_hors_ligne())
+        loop.create_task(bot.close())
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
@@ -80,6 +98,10 @@ if __name__ == "__main__":
     if not TOKEN:
         print("❌ TOKEN MANQUANT")
         sys.exit(1)
+
+    # Capture des signaux d'arrêt
+    signal.signal(signal.SIGINT, gestionnaire_signal)
+    signal.signal(signal.SIGTERM, gestionnaire_signal)
 
     try:
         bot.run(TOKEN)
