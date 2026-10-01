@@ -83,8 +83,9 @@ class FichePersoCog(commands.Cog):
             f"📖 **COMMENT UTILISER LA COMMANDE `/activite` :**\n"
             f"Chaque fois que tu effectues une activité sur le serveur, tu dois la déclarer ici même :\n"
             f"1️⃣ Tape la commande `/activite` dans ce salon.\n"
-            f"2️⃣ Remplis les champs requis (Type d'activité, détails, preuves si nécessaire).\n"
-            f"3️⃣ Valide pour ajouter automatiquement tes points / heures à ton compteur."
+            f"2️⃣ Choisis la catégorie de ce que tu as fait en jeu.\n"
+            f"3️⃣ Dans `montant_ou_poids`, indique l'argent ou le nombre de kg que tu as sur toi.\n"
+            f"4️⃣ Une fois ceci rempli, appuie sur Entrée pour valider la commande."
         )
 
         await nouveau_salon.send(contenu_message)
