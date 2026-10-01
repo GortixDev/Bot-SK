@@ -60,6 +60,12 @@ class FichePersoCog(commands.Cog):
                 except Exception:
                     pass
 
+        # Rafraîchissement des données du membre pour récupérer les rôles fraîchement ajoutés
+        try:
+            membre = await guild.fetch_member(membre.id)
+        except Exception:
+            pass
+
         # Extraction Nom / Prénom depuis le pseudo
         parties_nom = membre.display_name.split(" ", 1)
         prenom = parties_nom[0]
@@ -71,7 +77,7 @@ class FichePersoCog(commands.Cog):
 
         date_recrutement = datetime.datetime.now(HEURE_FRANCE).strftime("%d/%m/%Y")
 
-        # Message d'identité + bienvenue + guide /activité
+        # Message complet
         contenu_message = (
             f"# 🪪 FICHE PERSONNELLE DE {membre.mention}\n\n"
             f"👤 **Nom :** {nom}\n"
