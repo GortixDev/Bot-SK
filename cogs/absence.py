@@ -3,7 +3,7 @@ import datetime
 import discord
 from discord import app_commands
 from discord.ext import commands
-from config import HEURE_FRANCE, LISTE_ROLES_GRADES, ID_ROLE_SERGENT_AT_ARMS
+from config import HEURE_FRANCE, LISTE_ROLES_GRADES, ID_ROLE_SECRETARY
 
 class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
     def __init__(self, role_mention: str, auteur: discord.Member):
@@ -36,7 +36,7 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
             f"**Date De Départ :** {self.date_depart.value}\n"
             f"**Date De Retour :** {self.date_retour.value}\n"
             f"**Raison De L'absence :** {self.raison.value}\n\n"
-            f"**Cordialement,**\n<@&{ID_ROLE_SERGENT_AT_ARMS}>"
+            f"**Cordialement,**\n<@&{ID_ROLE_SECRETARY}>"
         )
         await interaction.channel.send(message_absence)
         await interaction.followup.send("✅ Déclaration d'absence envoyée !", ephemeral=True)
