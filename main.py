@@ -15,8 +15,6 @@ def home():
 async def run_flask():
     # Sur Render, il faut écouter sur 0.0.0.0 et sur le port fourni par $PORT
     port = int(os.environ.get("PORT", 10000))
-    config = WerkzeugConfig() if False else None
-    # Lancement du serveur Web léger sans bloquer la boucle Discord
     from werkzeug.serving import run_simple
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, lambda: run_simple("0.0.0.0", port, app, use_reloader=False, threaded=True))
