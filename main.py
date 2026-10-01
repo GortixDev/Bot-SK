@@ -1,7 +1,6 @@
 import os
 import sys
 import asyncio
-import signal
 from flask import Flask
 import discord
 from discord.ext import commands
@@ -52,34 +51,24 @@ bot = MonBot()
 async def on_ready():
     print(f"🤖 Connecté en tant que : {bot.user}")
     
-    # Envoyé uniquement QUAND LE BOT EST TOTALEMENT EN LIGNE
-    await envoyer_log(
-        bot,
-        "🟢 Bot en ligne",
-        f"Le bot {bot.user.mention} est désormais connecté et totalement opérationnel.",
-        discord.Color.green(),
-    )
-
-async def annoncer_redemarrage_et_fermer():
-    """Prévient dans les logs que le bot se coup pour redémarrer avant l'extinction."""
     channel_logs = bot.get_channel(ID_SALON_LOGS)
     if channel_logs:
-        try:
-            await channel_logs.send(
-                f"🔄 **Redémarrage / Connexion du Bot**\n"
-                f"Le bot <@&{ID_ROLE_BOT_MENTION}> vient de se redémarrer, merci de patienter pendant sa mise en ligne."
-            )
-        except Exception as e:
-            print(f"Erreur envoi alerte redémarrage : {e}")
-    
-    await bot.close()
-
-def signal_handler(sig, frame):
-    """Intercepte le clic 'Manual Deploy' ou le redémarrage sur Render."""
-    print("🛑 Signal de redémarrage/arrêt reçu de Render. Envoi du message...")
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
-        loop.create_task(annoncer_redemarrage_et_fermer())
+        # 1. Envoi immédiat du message de redémarrage lors de la prise de contact
+        await channel_logs.send(
+            f"🔄 **Redémarrage / Connexion du Bot**\n"
+            f"Le bot <@&{ID_ROLE_BOT_MENTION}> vient de se redémarrer merci de patienter pendant sa mise en ligne"
+        )
+        
+        # Pause de 3 secondes pour simuler le temps d'initialisation dans le salon
+        await asyncio.sleep(3)
+        
+        # 2. Envoi du message de confirmation de mise en ligne
+        await envoyer_log(
+            bot,
+            "🟢 Bot en ligne",
+            f"Le bot {bot.user.mention} est désormais connecté et toutes les commandes sont totalement opérationnelles.",
+            discord.Color.green(),
+        )
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
@@ -102,10 +91,6 @@ if __name__ == "__main__":
     if not TOKEN:
         print("❌ TOKEN MANQUANT")
         sys.exit(1)
-
-    # Capture du signal de fermeture de Render
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
 
     try:
         bot.run(TOKEN)
