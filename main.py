@@ -4,7 +4,7 @@ import asyncio
 from flask import Flask
 import discord
 from discord.ext import commands
-from config import ID_SALON_LOGS, ID_ROLE_BOT_MENTION, envoyer_log
+from config import ID_SALON_LOGS, envoyer_log
 
 app = Flask("")
 
@@ -51,24 +51,13 @@ bot = MonBot()
 async def on_ready():
     print(f"🤖 Connecté en tant que : {bot.user}")
     
-    channel_logs = bot.get_channel(ID_SALON_LOGS)
-    if channel_logs:
-        # 1. Envoi immédiat du message de redémarrage lors de la prise de contact
-        await channel_logs.send(
-            f"🔄 **Redémarrage / Connexion du Bot**\n"
-            f"Le bot <@&{ID_ROLE_BOT_MENTION}> vient de se redémarrer merci de patienter pendant sa mise en ligne"
-        )
-        
-        # Pause de 3 secondes pour simuler le temps d'initialisation dans le salon
-        await asyncio.sleep(3)
-        
-        # 2. Envoi du message de confirmation de mise en ligne
-        await envoyer_log(
-            bot,
-            "🟢 Bot en ligne",
-            f"Le bot {bot.user.mention} est désormais connecté et toutes les commandes sont totalement opérationnelles.",
-            discord.Color.green(),
-        )
+    # Envoi uniquement du message déclarant le bot en ligne
+    await envoyer_log(
+        bot,
+        "🟢 Bot en ligne",
+        f"Le bot {bot.user.mention} est désormais connecté et toutes les commandes sont totalement opérationnelles.",
+        discord.Color.green(),
+    )
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
