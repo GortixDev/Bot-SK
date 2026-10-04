@@ -30,12 +30,31 @@ class FichePersoCog(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
-        categorie_cible = guild.get_channel(ID_CATEGORIE_FICHE) if guild else None
 
-        if not isinstance(categorie_cible, discord.CategoryChannel):
-            await interaction.followup.send("❌ Catégorie invalide.", ephemeral=True)
+        if not guild:
+            await interaction.followup.send("❌ Erreur : Serveur introuvable.", ephemeral=True)
             return
 
+        # 1. Tentative de récupération de la catégorie via le cache
+        categorie_cible = guild.get_channel(ID_CATEGORIE_FICHE)
+
+        # 2. Si non trouvée dans le cache, recherche directe auprès de l'API Discord
+        if not categorie_cible:
+            try:
+                categorie_cible = await guild.fetch_channel(ID_CATEGORIE_FICHE)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                categorie_cible = None
+
+        # 3. Vérification de la validité de la catégorie
+        if not isinstance(categorie_cible, discord.CategoryChannel):
+            await interaction.followup.send(
+                f"❌ Catégorie invalide ou introuvable (ID configuré : `{ID_CATEGORIE_FICHE}`).\n"
+                "Vérifiez la valeur de `ID_CATEGORIE_FICHE` dans `config.py` ainsi que les permissions du bot.",
+                ephemeral=True
+            )
+            return
+
+        # Configuration des permissions du salon
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             membre: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -43,8 +62,15 @@ class FichePersoCog(commands.Cog):
         for role_id in ROLES_FICHE_PERSO:
             role = guild.get_role(role_id)
             if role:
-                overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_messages=True, manage_channels=True)
+                overwrites[role] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True,
+                    manage_messages=True,
+                    manage_channels=True
+                )
 
+        # Création du salon textuel dans la catégorie
         nom_salon = normaliser_nom_salon_fiche(rename) if rename else f"🔫・{normaliser_nom_salon_fiche(membre.display_name)}"
         nouveau_salon = await categorie_cible.create_text_channel(name=nom_salon, overwrites=overwrites)
 
@@ -70,7 +96,7 @@ class FichePersoCog(commands.Cog):
 
         date_recrutement = datetime.datetime.now(HEURE_FRANCE).strftime("%d/%m/%Y")
 
-        # Message complet
+        # Message de bienvenue et fiche personnelle
         contenu_message = (
             f"# 🪪 FICHE PERSONNELLE DE {membre.mention}\n\n"
             f"👤 **Nom :** {nom}\n"
@@ -104,8 +130,11 @@ class FichePersoCog(commands.Cog):
             return
 
         await interaction.response.defer(ephemeral=True)
-        await interaction.channel.edit(name=nom_clean)
-        await interaction.followup.send(f"✅ Salon renommé en `{nom_clean}`", ephemeral=True)
+        if isinstance(interaction.channel, discord.TextChannel):
+            await interaction.channel.edit(name=nom_clean)
+            await interaction.followup.send(f"✅ Salon renommé en `{nom_clean}`", ephemeral=True)
+        else:
+            await interaction.followup.send("❌ Impossible de renommer ce salon.", ephemeral=True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(FichePersoCog(bot))
