@@ -4,6 +4,9 @@ from discord import app_commands
 from discord.ext import commands
 from config import ID_CATEGORIE_FICHE, LISTE_ROLES_GRADES, ROLES_STAFF, normaliser_nom_salon_fiche, salons_fiche_perso, verifier_roles
 
+# ID du salon d'annonce des promotions
+ID_SALON_PROMOTIONS_GLOBAL = 1548757881485000785
+
 CHOICES_GRADES = [
     app_commands.Choice(name="🔧 • Prospects", value="1539031656139071530"),
     app_commands.Choice(name="🐦‍⬛ • Nomad", value="1539031656139071531"),
@@ -18,7 +21,7 @@ CHOICES_GRADES = [
     app_commands.Choice(name="💲 • Treasurer", value="1539031656176951318"),
     app_commands.Choice(name="🔫 • Sergeant At Arms", value="1553411598494867486"),
     app_commands.Choice(name="🚬 • V-Président", value="1539031656176951320"),
-    app_commands.Choice(name="⚒️ • Président", value="1539031656176951321"),
+    app_commands.Choice(name="⚒️️ • Président", value="1539031656176951321"),
 ]
 
 class PromotionsCog(commands.Cog):
@@ -37,11 +40,13 @@ class PromotionsCog(commands.Cog):
             await interaction.followup.send("❌ Rôle introuvable.", ephemeral=True)
             return
 
+        # Retrait des anciens grades et ajout du nouveau
         anciens_roles = [r for r in membre.roles if r.id in LISTE_ROLES_GRADES and r.id != nouveau_role.id]
         if anciens_roles:
             await membre.remove_roles(*anciens_roles)
         await membre.add_roles(nouveau_role)
 
+        # Recherche du salon fiche perso du membre
         salon_fiche = None
         for s_id in salons_fiche_perso:
             s = guild.get_channel(s_id)
@@ -49,16 +54,25 @@ class PromotionsCog(commands.Cog):
                 salon_fiche = s
                 break
 
-        embed_felicitation = discord.Embed(
-            title="🎉 Félicitations !",
-            description=f"Bravo {membre.mention} pour ta promotion au grade **{nouveau_role.name}** !",
-            color=discord.Color.green(),
+        # Construction du message exact demandé
+        message_promotion = (
+            f"{membre.mention}\n"
+            f"🎉 Félicitations !\n"
+            f"Bravo {membre.mention} pour ta promotion !\n\n"
+            f"Tu passes au grade **{nouveau_role.name}**\n\n"
+            f"Promotion effectuée par {interaction.user.mention} ."
         )
 
-        if salon_fiche:
-            await salon_fiche.send(content=f"{membre.mention}", embed=embed_felicitation)
+        # 1. Envoi dans le salon global d'annonce
+        salon_global = guild.get_channel(ID_SALON_PROMOTIONS_GLOBAL)
+        if salon_global and isinstance(salon_global, discord.TextChannel):
+            await salon_global.send(content=message_promotion)
 
-        await interaction.followup.send(f"✅ Promotion de {membre.mention} effectuée avec succès !", ephemeral=False)
+        # 2. Envoi dans le salon individuel du membre
+        if salon_fiche:
+            await salon_fiche.send(content=message_promotion)
+
+        await interaction.followup.send(f"✅ Promotion de {membre.mention} effectuée avec succès !", ephemeral=True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(PromotionsCog(bot))
