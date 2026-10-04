@@ -10,13 +10,12 @@ from discord import app_commands
 HEURE_FRANCE = ZoneInfo("Europe/Paris")
 
 # --- Webhook & Logs ---
-# À remplacer par l'URL de ton Webhook Discord (Créé dans Salon Logs > Paramètres > Intégrations > Webhooks)
 WEBHOOK_LOGS_URL = os.environ.get("WEBHOOK_LOGS_URL", "https://discord.com/api/webhooks/TES_IDENTIFIANTS_ICI")
 
 # --- IDs Salons & Catégories ---
 ID_SALON_LOGS = 1541572348396703805
 ID_ROLE_BOT_MENTION = 1540841034672513206
-ID_CATEGORIE_FICHE = 1539031656076410976
+ID_CATEGORIE_FICHE = 1539031662078464118  # Mis à jour avec le bon ID de catégorie
 ID_SALON_COMMANDE_FICHE = 1542856179435307076
 ID_SALON_ALERTE_ACTIVITES = 1542837467709833286
 ID_ROLE_PING_ALERTE_ACTIVITE = 1539031656076410976
