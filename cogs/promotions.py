@@ -21,7 +21,7 @@ CHOICES_GRADES = [
     app_commands.Choice(name="💲 • Treasurer", value="1539031656176951318"),
     app_commands.Choice(name="🔫 • Sergeant At Arms", value="1553411598494867486"),
     app_commands.Choice(name="🚬 • V-Président", value="1539031656176951320"),
-    app_commands.Choice(name="⚒️️ • Président", value="1539031656176951321"),
+    app_commands.Choice(name="⚒️ • Président", value="1539031656176951321"),
 ]
 
 class PromotionsCog(commands.Cog):
@@ -54,23 +54,27 @@ class PromotionsCog(commands.Cog):
                 salon_fiche = s
                 break
 
-        # Construction du message exact demandé
-        message_promotion = (
-            f"{membre.mention}\n"
-            f"🎉 Félicitations !\n"
-            f"Bravo {membre.mention} pour ta promotion !\n\n"
-            f"Tu passes au grade **{nouveau_role.name}**\n\n"
-            f"Promotion effectuée par {interaction.user.mention} ."
+        # Création de l'Embed au format exact
+        embed_promo = discord.Embed(
+            title="🎉 Félicitations !",
+            description=(
+                f"Bravo {membre.mention} pour ta promotion !\n\n"
+                f"Tu passes au grade {nouveau_role.mention}.\n\n"
+                f"Promotion effectuée par {interaction.user.mention}."
+            ),
+            color=discord.Color.green(),
         )
+        embed_promo.set_footer(text="Félicitations pour ton nouveau grade !")
+        embed_promo.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-        # 1. Envoi dans le salon global d'annonce
+        # 1. Envoi dans le salon global d'annonce (Mention + Embed)
         salon_global = guild.get_channel(ID_SALON_PROMOTIONS_GLOBAL)
         if salon_global and isinstance(salon_global, discord.TextChannel):
-            await salon_global.send(content=message_promotion)
+            await salon_global.send(content=f"{membre.mention}", embed=embed_promo)
 
-        # 2. Envoi dans le salon individuel du membre
+        # 2. Envoi dans le salon individuel du membre (Mention + Embed)
         if salon_fiche:
-            await salon_fiche.send(content=message_promotion)
+            await salon_fiche.send(content=f"{membre.mention}", embed=embed_promo)
 
         await interaction.followup.send(f"✅ Promotion de {membre.mention} effectuée avec succès !", ephemeral=True)
 
