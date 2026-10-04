@@ -7,7 +7,6 @@ from config import (
     normaliser_nom_salon_fiche, salons_fiche_perso, verifier_roles
 )
 
-# ID du salon d'annonce des promotions
 ID_SALON_PROMOTIONS_GLOBAL = 1548757881485000785
 
 CHOICES_GRADES = [
@@ -42,28 +41,38 @@ class PromotionsCog(commands.Cog):
             await interaction.followup.send("❌ Serveur introuvable.", ephemeral=True)
             return
 
+        # Rafraîchissement direct du membre depuis Discord pour éviter les problèmes de cache
+        try:
+            membre = await guild.fetch_member(membre.id)
+        except Exception:
+            pass
+
         nouveau_role = guild.get_role(int(nouveau_grade.value))
         if not nouveau_role:
             await interaction.followup.send("❌ Rôle introuvable.", ephemeral=True)
             return
 
-        # 1. Nettoyage de TOUS les anciens rôles appartenant à LISTE_ROLES_GRADES
-        anciens_roles = [role for role in membre.roles if role.id in LISTE_ROLES_GRADES and role.id != nouveau_role.id]
+        # 1. Extraction exacte des anciens rôles de grade à supprimer
+        roles_a_retirer = [
+            role for role in membre.roles 
+            if role.id in LISTE_ROLES_GRADES and role.id != nouveau_role.id
+        ]
 
-        if anciens_roles:
+        # 2. Retrait des anciens rôles
+        if roles_a_retirer:
             try:
-                await membre.remove_roles(*anciens_roles)
+                await membre.remove_roles(*roles_a_retirer)
             except Exception as e:
-                print(f"Erreur lors du retrait des anciens rôles : {e}")
+                print(f"Erreur retrait anciens rôles : {e}")
 
-        # 2. Attribution du nouveau rôle
+        # 3. Ajout du nouveau rôle
         try:
             await membre.add_roles(nouveau_role)
         except Exception as e:
             await interaction.followup.send(f"❌ Impossible d'ajouter le rôle : {e}", ephemeral=True)
             return
 
-        # 3. Recherche du salon fiche perso du membre
+        # 4. Recherche du salon fiche perso
         salon_fiche = None
         for s_id in salons_fiche_perso:
             s = guild.get_channel(s_id)
@@ -71,7 +80,7 @@ class PromotionsCog(commands.Cog):
                 salon_fiche = s
                 break
 
-        # 4. Construction de l'Embed (barre verte à gauche)
+        # 5. Embed d'annonce visuelle
         embed_promo = discord.Embed(
             title="🎉 Félicitations !",
             description=(
@@ -84,12 +93,12 @@ class PromotionsCog(commands.Cog):
         embed_promo.set_footer(text="Félicitations pour ton nouveau grade !")
         embed_promo.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-        # 5. Envoi du ping utilisateur + embed dans le salon d'annonce global
+        # Envoi dans le salon global
         salon_global = guild.get_channel(ID_SALON_PROMOTIONS_GLOBAL)
         if salon_global and isinstance(salon_global, discord.TextChannel):
             await salon_global.send(content=f"{membre.mention}", embed=embed_promo)
 
-        # 6. Envoi dans le salon individuel du membre s'il existe
+        # Envoi dans la fiche perso
         if salon_fiche:
             await salon_fiche.send(content=f"{membre.mention}", embed=embed_promo)
 
