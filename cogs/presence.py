@@ -90,7 +90,7 @@ class PresenceCog(commands.Cog):
         motif: str,
         date: str | None = None,
         heure: str = "21h00",
-        lieu: str = "TOUS au CH. (côté bat)",
+        lieu: str = "Villa",
     ):
         await interaction.response.defer(ephemeral=True)
         date_effective = date or datetime.datetime.now(HEURE_FRANCE).strftime("%d/%m/%Y")
