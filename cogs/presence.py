@@ -8,14 +8,14 @@ from config import HEURE_FRANCE, ROLES_PRESENCE, ROLES_MODIFIER_PRESENCE, verifi
 
 def construire_message_presence(motif: str, date: str, heure: str, lieu: str) -> str:
     return (
-        "**<@&1539031656076410976>**\n\n"
+        "**<@&1435753877889749043>**\n\n"
         "**Qui sera présent ?**\n\n"
         f"**Motif : {motif}**\n\n"
         "**✅ Je serais à l'heure ( aucun retard toléré )**\n\n"
         "**⌛ Je serais présent mais avec du retard**\n\n"
         "**❌ Je ne serais pas là de la soirée**\n\n"
         f"**{date} - {heure} - {lieu}**\n\n"
-        "**Cordialement,**\n<@&1539031656176951317>\n\u200b"
+        "**Cordialement,**\n<@&1435681997057163364>\n\u200b"
     )
 
 REGEX_PRESENCE_MOTIF = re.compile(r"\*\*Motif\s*:\s*(.+?)\*\*")
