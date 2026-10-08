@@ -52,7 +52,6 @@ bot = MonBot()
 async def on_ready():
     print(f"🤖 Connecté en tant que : {bot.user}")
     
-    # Message de confirmation de mise en ligne
     await envoyer_log(
         bot,
         "🟢 Bot en ligne",
@@ -99,7 +98,6 @@ if __name__ == "__main__":
         print("❌ TOKEN MANQUANT")
         sys.exit(1)
 
-    # Capture des signaux d'arrêt
     signal.signal(signal.SIGINT, gestionnaire_signal)
     signal.signal(signal.SIGTERM, gestionnaire_signal)
 
