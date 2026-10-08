@@ -4,6 +4,9 @@ from discord import app_commands
 from discord.ext import commands
 from config import HEURE_FRANCE, LISTE_ROLES_GRADES, ID_ROLE_SECRETARY
 
+# Image du tampon d'absence
+URL_IMAGE_ABSENT = "https://i.postimg.cc/ZCyfwzsM/image.png"
+
 class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
     def __init__(self, role_mention: str, auteur: discord.Member):
         super().__init__()
@@ -29,7 +32,6 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Création d'un Embed au rendu propre
         embed = discord.Embed(
             color=discord.Color.gold(),
             timestamp=datetime.datetime.now(datetime.timezone.utc)
@@ -44,13 +46,13 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
             f"**Cordialement,**\n<@&{ID_ROLE_SECRETARY}>"
         )
         
+        # Tampon ABSENT en haut à droite
+        embed.set_thumbnail(url=URL_IMAGE_ABSENT)
+
         if self.auteur.avatar:
             embed.set_author(name=self.auteur.display_name, icon_url=self.auteur.avatar.url)
 
-        # Envoi de l'embed dans le salon
         await interaction.channel.send(embed=embed)
-        
-        # Confirmation éphémère pour l'utilisateur
         await interaction.response.send_message("✅ Déclaration d'absence envoyée !", ephemeral=True)
 
 class AbsenceCog(commands.Cog):
