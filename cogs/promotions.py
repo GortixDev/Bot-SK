@@ -7,7 +7,7 @@ from config import (
     normaliser_nom_salon_fiche, salons_fiche_perso, verifier_roles
 )
 
-ID_SALON_PROMOTIONS_GLOBAL = 1548757881485000785
+ID_SALON_PROMOTIONS_GLOBAL = 1435750825304784926
 
 CHOICES_GRADES = [
     app_commands.Choice(name="🔘・Soldat", value="1435687023305298002"),
