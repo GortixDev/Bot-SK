@@ -8,11 +8,8 @@ from config import (
 )
 
 ID_SALON_PROMOTIONS_GLOBAL = 1435750825304784926
-
-# Rôle permanent obligatoire
 ID_ROLE_TF141 = 1435753877889749043
 
-# Mapping des grades vers leurs catégories respectives
 CATEGORIES_GRADES = {
     # ▬▬▬ Officiers Généraux (1435706034554540103)
     1435681997057163364: 1435706034554540103,  # Maréchal
@@ -80,6 +77,14 @@ class PromotionsCog(commands.Cog):
     @app_commands.choices(nouveau_grade=CHOICES_GRADES)
     @verifier_roles(ROLES_STAFF)
     async def promotions(self, interaction: discord.Interaction, membre: discord.Member, nouveau_grade: app_commands.Choice[str]):
+        # Vérification du salon d'exécution
+        if interaction.channel_id != ID_SALON_PROMOTIONS_GLOBAL:
+            await interaction.response.send_message(
+                f"❌ Cette commande doit être exécutée uniquement dans le salon <#{ID_SALON_PROMOTIONS_GLOBAL}>.", 
+                ephemeral=True
+            )
+            return
+
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
 
@@ -99,40 +104,37 @@ class PromotionsCog(commands.Cog):
             await interaction.followup.send("❌ Rôle de grade introuvable sur le serveur.", ephemeral=True)
             return
 
-        # Identification de la catégorie correspondante
         id_categorie_cible = CATEGORIES_GRADES.get(nouveau_grade_id)
         role_categorie_cible = guild.get_role(id_categorie_cible) if id_categorie_cible else None
         role_tf141 = guild.get_role(ID_ROLE_TF141)
 
-        # 1. Identification de tous les anciens rôles à retirer (anciens grades + anciennes catégories)
+        # Retrait des anciens grades et anciennes catégories
         roles_a_retirer = [
             r for r in membre.roles 
             if (r.id in LISTE_ROLES_GRADES and r.id != nouveau_grade_id)
             or (r.id in ROLES_CATEGORIES_TOUTES and r.id != id_categorie_cible)
         ]
 
-        # Retrait des anciens rôles
         if roles_a_retirer:
             try:
                 await membre.remove_roles(*roles_a_retirer)
             except Exception as e:
                 print(f"Erreur lors du retrait des anciens rôles : {e}")
 
-        # 2. Identification des nouveaux rôles à ajouter
+        # Ajout des nouveaux rôles (Grade + Catégorie + TF141)
         roles_a_ajouter = [nouveau_role]
         if role_categorie_cible and role_categorie_cible not in membre.roles:
             roles_a_ajouter.append(role_categorie_cible)
         if role_tf141 and role_tf141 not in membre.roles:
             roles_a_ajouter.append(role_tf141)
 
-        # Ajout des nouveaux rôles
         try:
             await membre.add_roles(*roles_a_ajouter)
         except Exception as e:
             await interaction.followup.send(f"❌ Erreur lors de l'attribution des rôles : {e}", ephemeral=True)
             return
 
-        # 3. Salon Fiche Perso
+        # Recherche du salon fiche perso
         salon_fiche = None
         for s_id in salons_fiche_perso:
             s = guild.get_channel(s_id)
@@ -140,7 +142,7 @@ class PromotionsCog(commands.Cog):
                 salon_fiche = s
                 break
 
-        # 4. Embed d'annonce
+        # Embed d'annonce
         embed_promo = discord.Embed(
             title="🎉 Félicitations !",
             description=(
@@ -153,7 +155,7 @@ class PromotionsCog(commands.Cog):
         embed_promo.set_footer(text="Félicitations pour ton nouveau grade !")
         embed_promo.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-        # Envoi dans le salon global
+        # Envoi dans le salon autorisé (ID_SALON_PROMOTIONS_GLOBAL)
         salon_global = guild.get_channel(ID_SALON_PROMOTIONS_GLOBAL)
         if salon_global and isinstance(salon_global, discord.TextChannel):
             await salon_global.send(content=f"{membre.mention}", embed=embed_promo)
