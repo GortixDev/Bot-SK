@@ -15,7 +15,7 @@ WEBHOOK_LOGS_URL = os.environ.get("WEBHOOK_LOGS_URL", "https://discord.com/api/w
 # --- IDs Salons & Catégories ---
 ID_SALON_LOGS = 1541572348396703805
 ID_ROLE_BOT_MENTION = 1540841034672513206
-ID_CATEGORIE_FICHE = 1539031662078464118
+ID_CATEGORIE_FICHE = 1539031656076410976
 ID_SALON_COMMANDE_FICHE = 1542856179435307076
 ID_SALON_ALERTE_ACTIVITES = 1542837467709833286
 ID_ROLE_PING_ALERTE_ACTIVITE = 1539031656076410976
@@ -55,22 +55,30 @@ ROLES_FICHE_PERSO = [
     1539031656076410977, 1539045111105720352,
 ]
 
-# Inclusions de TOUS les rôles de grades pour assurer leur suppression lors d'une promotion
+# Liste complète des grades mis à jour
 LISTE_ROLES_GRADES = [
-    1539031656139071530, # Prospects
-    1539031656139071531, # Nomad
-    1539031656139071532, # Member
-    1539031656139071533, # Soul Night
-    1539031656139071534, # Ass-Kicker
-    1539031656139071535, # Tail-Gunner
-    1539031656139071536, # Enforcer
-    1539031656139071537, # Soul Reaper
-    1539031656139071538, # Road Captain
-    1539031656176951317, # Secretary
-    1539031656176951318, # Treasurer
-    1553411598494867486, # Sergeant At Arms
-    1539031656176951320, # V-Président
-    1539031656176951321, # Président
+    1435681997057163364,  # 🌟・Maréchal
+    1435686815330996224,  # ⭐⭐⭐⭐⭐️・Général d'armée
+    1435686937548820652,  # ⭐⭐⭐️⭐・Général de corps d'armée
+    1435686942665609256,  # ⭐⭐️⭐・Général de Division
+    1435686948034314321,  # ⭐⭐️・Général de Brigade
+    1435686954133094502,  # 🟢・Colonel
+    1435686958541049867,  # 🟢・Lieutenant-Colonel
+    1435686962882412554,  # 🟢・Commandant
+    1435686967152214036,  # 🟢・Capitaine
+    1435686971333804193,  # 🟢・Lieutenant
+    1435686975003693086,  # 🟢・Sous-Lieutenant
+    1435686978522710066,  # 🟢・Aspirant
+    1435686983770046545,  # 🟡・Major
+    1435686988035653702,  # 🟡・Adjudant-Chef
+    1435686992095740044,  # 🟡・Adjudant
+    1435686996281659525,  # 🟡・Sergent-Chef BM2
+    1435687000509513800,  # 🟡・Sergent
+    1435687004774858762,  # 🔘・Caporal-Chef 1ʳᵉ Classe
+    1435687009774469273,  # 🔘・Caporal-Chef
+    1435687014157521047,  # 🔘・Caporal
+    1435687017441919026,  # 🔘・Soldat 1ʳᵉ classe
+    1435687023305298002,  # 🔘・Soldat
 ]
 
 def charger_salons_fiche() -> set[int]:
