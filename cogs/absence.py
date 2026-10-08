@@ -29,8 +29,13 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Envoi du message officiel d'absence dans le salon
-        message_absence = (
+        # Création d'un Embed au rendu propre
+        embed = discord.Embed(
+            color=discord.Color.gold(),
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        
+        embed.description = (
             f"**Nom Prénom :** {self.auteur.mention}\n"
             f"**Grade :** {self.role_mention}\n"
             f"**Date De Départ :** {self.date_depart.value}\n"
@@ -38,9 +43,14 @@ class FormulaireAbsence(discord.ui.Modal, title="Déclaration d'absence"):
             f"**Raison De L'absence :** {self.raison.value}\n\n"
             f"**Cordialement,**\n<@&{ID_ROLE_SECRETARY}>"
         )
-        await interaction.channel.send(message_absence)
         
-        # Confirmation discrète (éphémère) pour l'utilisateur
+        if self.auteur.avatar:
+            embed.set_author(name=self.auteur.display_name, icon_url=self.auteur.avatar.url)
+
+        # Envoi de l'embed dans le salon
+        await interaction.channel.send(embed=embed)
+        
+        # Confirmation éphémère pour l'utilisateur
         await interaction.response.send_message("✅ Déclaration d'absence envoyée !", ephemeral=True)
 
 class AbsenceCog(commands.Cog):
@@ -50,7 +60,6 @@ class AbsenceCog(commands.Cog):
     async def grade_autocomplete(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
-        """Recherche dynamique du grade au fur et à mesure que l'utilisateur tape."""
         if not interaction.guild:
             return []
 
@@ -58,7 +67,6 @@ class AbsenceCog(commands.Cog):
         for role_id in LISTE_ROLES_GRADES:
             role = interaction.guild.get_role(role_id)
             if role:
-                # Filtre le rôle en fonction du texte saisi
                 if current.lower() in role.name.lower():
                     choices.append(app_commands.Choice(name=role.name, value=str(role.id)))
 
@@ -66,15 +74,13 @@ class AbsenceCog(commands.Cog):
 
     @app_commands.command(name="absence", description="Déclarer une absence via un formulaire")
     @app_commands.autocomplete(grade=grade_autocomplete)
-    @app_commands.describe(grade="Tape le nom de ton grade pour le chercher dans la liste")
+    @app_commands.describe(grade="Tape le nom de ton grade pour le chercher")
     async def absence(self, interaction: discord.Interaction, grade: str):
         if not interaction.guild or not isinstance(interaction.user, discord.Member):
             await interaction.response.send_message("Commande utilisable uniquement sur un serveur.", ephemeral=True)
             return
 
         role_mention = f"<@&{grade}>"
-        
-        # Ouvre directement la fenêtre pop-up (Modal) avec le grade sélectionné
         await interaction.response.send_modal(FormulaireAbsence(role_mention, interaction.user))
 
 async def setup(bot: commands.Bot):
