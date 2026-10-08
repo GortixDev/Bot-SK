@@ -20,7 +20,7 @@ ID_SALON_COMMANDE_FICHE = 1542856179435307076
 ID_SALON_ALERTE_ACTIVITES = 1542837467709833286
 ID_ROLE_PING_ALERTE_ACTIVITE = 1539031656076410976
 
-# Mis à jour avec le rôle souhaité pour la signature Cordialement
+# Mis à jour avec le rôle pour la signature Cordialement
 ID_ROLE_SECRETARY = 1435681997057163364
 
 # --- Fichiers & Données ---
