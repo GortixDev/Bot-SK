@@ -48,10 +48,12 @@ class SelectGradeView(discord.ui.View):
         super().__init__(timeout=60)
         self.auteur = auteur
         options = []
+
         for role_id in LISTE_ROLES_GRADES:
             role = guild.get_role(role_id)
             if role:
                 options.append(discord.SelectOption(label=role.name, value=str(role.id)))
+
         if not options:
             options.append(discord.SelectOption(label="Aucun rôle trouvé", value="0"))
 
